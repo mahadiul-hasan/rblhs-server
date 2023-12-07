@@ -8,7 +8,8 @@ const BannerRouter = require("./modules/banner/banner.route");
 const NoticeRouter = require("./modules/notice/notice.route");
 const ClassRoutineRouter = require("./modules/classRoutine/classRoutine.route");
 const ExamRoutineRouter = require("./modules/examRoutine/examRoutine.route");
-const ResultRouter = require("./modules/result/result.route");
+const OldResultRouter = require("./modules/oldResult/oldResult.route");
+const StudentRouter = require("./modules/student/student.route");
 
 const app = express();
 
@@ -22,6 +23,9 @@ app.use("/api/banners", BannerRouter);
 app.use("/api/notices", NoticeRouter);
 app.use("/api/class-routines", ClassRoutineRouter);
 app.use("/api/exam-routines", ExamRoutineRouter);
-app.use("/api/results", ResultRouter);
+app.use("/api/old-results", OldResultRouter);
+app.use("/api/students", StudentRouter);
 
-app.listen();
+app.listen(process.env.PORT, () => {
+	console.log(`Server is running on port ${process.env.PORT}`);
+});

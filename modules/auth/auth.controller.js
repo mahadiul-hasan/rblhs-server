@@ -1,150 +1,117 @@
 const pool = require("../../config/db");
 const jwt = require("jsonwebtoken");
+const { promisify } = require("util");
+
+const query = promisify(pool.query).bind(pool);
 
 module.exports = {
-	login: (req, res) => {
-		pool.query(
-			"SELECT * FROM user WHERE phone = ?",
-			[req.body.phone],
-			async (error, results) => {
-				if (error) {
-					return res.status(500).json({
-						message: "Error checking for existing user",
-						error: error.message,
-					});
-				}
-				const existingUser = results[0];
+	login: async (req, res) => {
+		try {
+			const results = await query("SELECT * FROM users WHERE phone = ?", [
+				req.body.phone,
+			]);
+			const existingUser = results[0];
 
-				if (!existingUser) {
-					return res.status(400).json({
-						message: "User not exist",
-					});
-				}
-
-				const isPasswordMatch =
-					existingUser.password === req.body.password;
-
-				if (!isPasswordMatch) {
-					return res.status(404).json({
-						message: "Password does not match",
-					});
-				}
-
-				const { id, phone, role } = existingUser;
-
-				const token = await jwt.sign(
-					{
-						id,
-						phone,
-						role,
-					},
-					process.env.JWT_SECRET,
-					{
-						expiresIn: process.env.EXPIRES_IN,
-					}
-				);
-
-				if (token) {
-					return res.status(200).json({
-						message: "User logged in successfully",
-						token: token,
-					});
-				}
+			if (!existingUser) {
+				return res.status(400).json({
+					message: "User does not exist",
+				});
 			}
-		);
+
+			const isPasswordMatch = existingUser.password === req.body.password;
+
+			if (!isPasswordMatch) {
+				return res.status(404).json({
+					message: "Password does not match",
+				});
+			}
+
+			const { id, phone, role } = existingUser;
+
+			const token = jwt.sign(
+				{
+					id,
+					phone,
+					role,
+				},
+				process.env.JWT_SECRET,
+				{
+					expiresIn: process.env.EXPIRES_IN,
+				}
+			);
+
+			return res.status(200).json({
+				message: "User logged in successfully",
+				token: token,
+			});
+		} catch (error) {
+			return res.status(500).json({
+				message: "Error checking for existing user",
+				error: error.message,
+			});
+		}
 	},
+
 	changePassword: async (req, res) => {
-		const user = req.user;
-		const { oldPassword, newPassword } = req.body;
+		try {
+			const user = req.user;
+			const { oldPassword, newPassword } = req.body;
 
-		pool.query(
-			"SELECT * FROM user WHERE phone = ?",
-			[user.phone],
-			async (error, results) => {
-				if (error) {
-					return res
-						.status(500)
-						.json({ message: "Error checking for existing user" });
-				}
+			const results = await query("SELECT * FROM users WHERE phone = ?", [
+				user.phone,
+			]);
+			const existingUser = results[0];
 
-				const result = results[0];
-
-				const isPasswordMatch = result.password === oldPassword;
-
-				if (!isPasswordMatch) {
-					return res
-						.status(404)
-						.json({ message: "Old Password is not correct" });
-				}
-
-				pool.query(
-					"UPDATE user SET password = ? WHERE phone = ?",
-					[newPassword, user.phone],
-					(error, results) => {
-						if (error) {
-							return res.status(500).json({
-								message: "Error updating password",
-								error: error.message,
-							});
-						}
-
-						if (results.affectedRows === 0) {
-							return res.status(404).json({
-								message: "User not found",
-							});
-						}
-
-						return res.status(200).json({
-							message: "Password changed successfully",
-						});
-					}
-				);
+			if (!existingUser || existingUser.password !== oldPassword) {
+				return res
+					.status(404)
+					.json({ message: "Old Password is not correct" });
 			}
-		);
+
+			await query("UPDATE users SET password = ? WHERE phone = ?", [
+				newPassword,
+				user.phone,
+			]);
+
+			return res.status(200).json({
+				message: "Password changed successfully",
+			});
+		} catch (error) {
+			return res.status(500).json({
+				message: "Error updating password",
+				error: error.message,
+			});
+		}
 	},
+
 	resetPassword: async (req, res) => {
-		const { phone, password } = req.body;
+		try {
+			const { phone, password } = req.body;
 
-		pool.query(
-			"SELECT * FROM user WHERE phone = ?",
-			[phone],
-			async (error, results) => {
-				if (error) {
-					return res
-						.status(500)
-						.json({ message: "Error checking for existing user" });
-				}
-				const result = results[0];
+			const results = await query("SELECT * FROM users WHERE phone = ?", [
+				phone,
+			]);
+			const existingUser = results[0];
 
-				if (result.length < 0) {
-					return res.status(404).json({
-						message: "User not found",
-					});
-				}
-
-				pool.query(
-					"UPDATE user SET password = ? WHERE phone = ?",
-					[password, phone],
-					(error, results) => {
-						if (error) {
-							return res.status(500).json({
-								message: "Error updating password",
-								error: error.message,
-							});
-						}
-
-						if (results.affectedRows === 0) {
-							return res.status(404).json({
-								message: "User not found",
-							});
-						}
-
-						return res.status(200).json({
-							message: "Password Reset successfully",
-						});
-					}
-				);
+			if (!existingUser) {
+				return res.status(404).json({
+					message: "User not found",
+				});
 			}
-		);
+
+			await query("UPDATE users SET password = ? WHERE phone = ?", [
+				password,
+				phone,
+			]);
+
+			return res.status(200).json({
+				message: "Password Reset successfully",
+			});
+		} catch (error) {
+			return res.status(500).json({
+				message: "Error updating password",
+				error: error.message,
+			});
+		}
 	},
 };

@@ -1,35 +1,35 @@
-const {
-	createNotice,
-	getNoticeById,
-	getAllNotices,
-	updateNotice,
-	deleteNotice,
-} = require("./notice.controller");
 const ENUM_USER_ROLE = require("../../enums/user");
 const auth = require("../middleware/auth");
+const {
+	getAllStudents,
+	createStudent,
+	updateStudent,
+	deleteStudent,
+	getStudentByClass,
+} = require("./student.controller");
 
 const router = require("express").Router();
 
-router.get("/", getAllNotices);
+router.get("/", getAllStudents);
 
-router.get("/:id", getNoticeById);
+router.get("/:class_name", getStudentByClass);
 
 router.post(
 	"/",
 	auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.TEACHER),
-	createNotice
+	createStudent
 );
 
 router.patch(
 	"/:id",
 	auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.TEACHER),
-	updateNotice
+	updateStudent
 );
 
 router.delete(
 	"/:id",
 	auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.TEACHER),
-	deleteNotice
+	deleteStudent
 );
 
 module.exports = router;

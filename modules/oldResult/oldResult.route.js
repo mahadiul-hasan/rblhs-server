@@ -5,7 +5,7 @@ const {
 	updateResult,
 	deleteResult,
 	getResultById,
-} = require("./result.controller");
+} = require("./oldResult.controller");
 const ENUM_USER_ROLE = require("../../enums/user");
 const auth = require("../middleware/auth");
 

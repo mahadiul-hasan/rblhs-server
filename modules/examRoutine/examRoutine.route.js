@@ -1,6 +1,5 @@
 const {
 	getAllExamRoutines,
-	getExamRoutine,
 	createExamRoutine,
 	deleteExamRoutine,
 } = require("./examRoutine.controller");
@@ -10,7 +9,6 @@ const auth = require("../middleware/auth");
 const router = require("express").Router();
 
 router.get("/", getAllExamRoutines);
-router.get("/one", getExamRoutine);
 
 router.post(
 	"/",

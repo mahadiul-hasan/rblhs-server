@@ -2,119 +2,145 @@ const path = require("path");
 const fs = require("fs");
 const pool = require("../../config/db");
 const GenerateUniqueFileName = require("../../utils/GenerateUniqueFileName");
+const NodeCache = require("node-cache");
+const cache = new NodeCache();
+const util = require("util");
+const queryAsync = util.promisify(pool.query).bind(pool);
 
 module.exports = {
 	createBanner: async (req, res) => {
-		if (!req.files) {
-			return res.status(404).json({
-				message: "File not found",
+		try {
+			if (!req.files || !req.files.image) {
+				return res.status(404).json({
+					message: "File not found",
+				});
+			}
+
+			const imageFile = req.files.image;
+			const imageFileName = await GenerateUniqueFileName(imageFile.name);
+			const imagePath = path.join("uploads", "banners", imageFileName);
+
+			imageFile.mv(imagePath, async (err) => {
+				if (err) {
+					return res.status(500).json({
+						message: "Error saving image file.",
+						error: err.message,
+					});
+				}
+
+				// Add the unique file paths to the payload
+				req.body.image = imagePath;
+
+				try {
+					const results = await queryAsync(
+						"INSERT INTO banners SET ?",
+						req.body
+					);
+
+					cache.del("banners");
+
+					return res.status(200).json({
+						message: "Banner created successfully",
+						bannerId: results.insertId,
+					});
+				} catch (error) {
+					return res.status(500).json({
+						message: "Error creating banner",
+						error: error.message,
+					});
+				}
+			});
+		} catch (error) {
+			if (req.body.image) {
+				fs.unlink(req.body.image, (err) => {
+					if (err) {
+						return res.status(500).json({
+							message: "Something went wrong. Please try again",
+						});
+					}
+				});
+			}
+			return res.status(500).json({
+				message: "Server error. Please try again later",
+				error: error.message,
 			});
 		}
-		const imageFile = req.files.image;
-		const imageFileName = await GenerateUniqueFileName(imageFile.name);
-		const imagePath = path.join("uploads", "banners", imageFileName);
+	},
 
-		imageFile.mv(imagePath, (err) => {
-			if (err) {
-				return res.status(404).json({
-					message: "Error saving image file.",
+	getAllBanners: async (req, res) => {
+		try {
+			const cachedBanners = cache.get("banners");
+			if (cachedBanners) {
+				return res.status(200).json({
+					message: "Banners retrieved from cache",
+					banners: cachedBanners.results,
 				});
 			}
-		});
 
-		// Add the unique file paths to the payload
-		req.body.image = imagePath;
+			const results = await queryAsync(
+				"SELECT * FROM banners ORDER BY id DESC"
+			);
 
-		pool.query("INSERT INTO banner SET ?", req.body, (error, results) => {
-			if (error) {
-				return res.status(500).json({
-					message: "Error creating banner",
-					error: error.message,
-				});
-			}
+			cache.set("banners", {
+				results,
+			});
 
 			return res.status(200).json({
-				message: "Banner created successfully",
-				bannerId: results.insertId,
+				message: "Banners retrieved successfully",
+				banners: results,
 			});
-		});
+		} catch (error) {
+			return res.status(500).json({
+				message: "Error retrieving banners",
+				error: error.message,
+			});
+		}
 	},
-	getAllBanners: (req, res) => {
-		pool.query(
-			"SELECT * FROM banner ORDER BY id DESC",
-			(error, results) => {
-				// Handle any errors
-				if (error) {
-					return res.status(500).json({
-						message: "Error retrieving banners",
-						error: error.message,
-					});
-				}
-				return res.status(200).json({
-					message: "Banners retrieved successfully",
-					banners: results,
-				});
-			}
-		);
-	},
-	deleteBanner: (req, res) => {
+
+	deleteBanner: async (req, res) => {
 		const id = req.params.id;
 
-		// Retrieve the image path before deleting the banner
-		pool.query(
-			"SELECT image FROM banner WHERE id = ?",
-			[id],
-			(error, results) => {
-				if (error) {
-					return res.status(500).json({
-						message: "Error getting image path",
-						error: error.message,
-					});
-				}
+		try {
+			const results = await queryAsync(
+				"SELECT image FROM banners WHERE id = ?",
+				[id]
+			);
 
-				if (results.length === 0) {
-					return res.status(404).json({
-						message: "Banner not found",
-					});
-				}
-
-				const imagePath = results[0].image;
-
-				// Delete the banner and associated image
-				pool.query(
-					"DELETE FROM banner WHERE id = ?",
-					[id],
-					(error, deleteResults) => {
-						if (error) {
-							return res.status(500).json({
-								message: "Error deleting banner",
-								error: error.message,
-							});
-						}
-
-						if (deleteResults.affectedRows === 1) {
-							// Delete the associated image file
-							fs.unlink(`${imagePath}`, (err) => {
-								if (err) {
-									return res.status(500).json({
-										message: "Error deleting image file",
-										error: err.message,
-									});
-								}
-
-								return res.status(200).json({
-									message: "Banner deleted successfully",
-								});
-							});
-						} else {
-							// Banner with the provided ID was not found
-							return res.status(404).json({
-								message: "Banner not found",
-							});
-						}
-					}
-				);
+			if (results.length === 0) {
+				return res.status(404).json({
+					message: "Banner not found",
+				});
 			}
-		);
+
+			const imagePath = results[0].image;
+
+			const deleteResults = await queryAsync(
+				"DELETE FROM banners WHERE id = ?",
+				[id]
+			);
+
+			if (deleteResults.affectedRows === 1) {
+				fs.unlink(imagePath, (err) => {
+					if (err) {
+						console.error("Error deleting profile image:", err);
+					}
+				});
+
+				cache.del("banners");
+
+				return res.status(200).json({
+					message: "Banner deleted successfully",
+				});
+			} else {
+				return res.status(404).json({
+					message: "Banner not found",
+				});
+			}
+		} catch (error) {
+			return res.status(500).json({
+				message: "Error deleting banner",
+				error: error.message,
+			});
+		}
 	},
 };
