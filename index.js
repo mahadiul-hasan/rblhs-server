@@ -10,6 +10,8 @@ const ClassRoutineRouter = require("./modules/classRoutine/classRoutine.route");
 const ExamRoutineRouter = require("./modules/examRoutine/examRoutine.route");
 const OldResultRouter = require("./modules/oldResult/oldResult.route");
 const StudentRouter = require("./modules/student/student.route");
+const ClassRouter = require("./modules/classes/classes.route");
+const SSCRouter = require("./modules/ssc/ssc.route");
 
 const app = express();
 
@@ -25,6 +27,8 @@ app.use("/api/class-routines", ClassRoutineRouter);
 app.use("/api/exam-routines", ExamRoutineRouter);
 app.use("/api/old-results", OldResultRouter);
 app.use("/api/students", StudentRouter);
+app.use("/api/classes", ClassRouter);
+app.use("/api/ssc", SSCRouter);
 
 app.listen(process.env.PORT, () => {
 	console.log(`Server is running on port ${process.env.PORT}`);

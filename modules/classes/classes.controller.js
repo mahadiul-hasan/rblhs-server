@@ -5,19 +5,28 @@ const util = require("util");
 const queryAsync = util.promisify(pool.query).bind(pool);
 
 module.exports = {
-	createNotice: async (req, res) => {
+	createClass: async (req, res) => {
 		try {
+			const result = await queryAsync(
+				"SELECT * FROM classes WHERE className = ?",
+				[req.body.className]
+			);
+			if (result.length > 0) {
+				return res.status(404).json({
+					message: "Class Already Exists",
+				});
+			}
+
 			const results = await queryAsync(
-				"INSERT INTO notices SET ?",
+				"INSERT INTO classes SET ?",
 				req.body
 			);
 
-			cache.del("notices");
-			cache.del(`notice_${results.insertId}`);
+			cache.del("classes");
 
 			return res.status(200).json({
 				message: "Notice created successfully",
-				noticeId: results.insertId,
+				classId: results.insertId,
 			});
 		} catch (error) {
 			return res.status(500).json({
@@ -27,137 +36,137 @@ module.exports = {
 		}
 	},
 
-	getAllNotices: async (req, res) => {
+	getAllClasses: async (req, res) => {
 		try {
-			const cachedNotices = cache.get("notices");
-			if (cachedNotices) {
+			const cachedClasses = cache.get("classes");
+			if (cachedClasses) {
 				return res.status(200).json({
-					message: "Notices retrieved from cache",
-					total: cachedNotices.total,
-					notices: cachedNotices.results,
+					message: "Classes retrieved from cache",
+					total: cachedClasses.total,
+					classes: cachedClasses.results,
 				});
 			}
 
 			const countResults = await queryAsync(
-				"SELECT COUNT(*) AS total FROM notices"
+				"SELECT COUNT(*) AS total FROM classes"
 			);
 			const total = countResults[0].total;
 
 			const results = await queryAsync(
-				"SELECT * FROM notices ORDER BY id DESC"
+				"SELECT * FROM classes ORDER BY className"
 			);
 
-			cache.set("notices", {
+			cache.set("classes", {
 				total,
 				results,
 			});
 
 			return res.status(200).json({
-				message: "Notices retrieved successfully",
+				message: "Classes retrieved successfully",
 				total,
-				notices: results,
+				classes: results,
 			});
 		} catch (error) {
 			return res.status(500).json({
-				message: "Error retrieving notices",
+				message: "Error retrieving classes",
 				error: error.message,
 			});
 		}
 	},
 
-	getNoticeById: async (req, res) => {
+	getClassById: async (req, res) => {
 		try {
 			const id = req.params.id;
 
-			const cachedNotices = cache.get(`notice_${id}`);
-			if (cachedNotices) {
+			const cachedClass = cache.get(`class_${id}`);
+			if (cachedClass) {
 				return res.status(200).json({
-					message: "Notice retrieved from cache",
-					notice: cachedNotices.results,
+					message: "Class retrieved from cache",
+					class: cachedClass.results,
 				});
 			}
 
-			const notices = await queryAsync(
-				"SELECT * FROM notices WHERE id = ?",
+			const classes = await queryAsync(
+				"SELECT * FROM classes WHERE id = ?",
 				[id]
 			);
 
-			if (notices.length === 0) {
+			if (classes.length === 0) {
 				return res.status(404).json({
-					message: "Notice not found",
+					message: "Class not found",
 				});
 			}
 
-			const results = notices[0];
+			const results = classes[0];
 
-			cache.set(`notice_${results.id}`, { results });
+			cache.set(`class_${results.id}`, { results });
 
 			return res.status(200).json({
-				message: "Notice retrieved successfully",
-				notice: results,
+				message: "Class retrieved successfully",
+				class: results,
 			});
 		} catch (error) {
 			return res.status(500).json({
-				message: "Error getting notice",
+				message: "Error getting class",
 				error: error.message,
 			});
 		}
 	},
 
-	updateNotice: async (req, res) => {
+	updateClass: async (req, res) => {
 		try {
 			const id = req.params.id;
 			const updatedFields = req.body;
 
 			const results = await queryAsync(
-				"UPDATE notices SET ? WHERE id = ?",
+				"UPDATE classes SET ? WHERE id = ?",
 				[updatedFields, id]
 			);
 
 			if (results.affectedRows === 0) {
 				return res.status(404).json({
-					message: "Notice not found",
+					message: "Class not found",
 				});
 			}
 
-			cache.del("notices");
-			cache.del(`notice_${id}`);
+			cache.del("classes");
+			cache.del(`class_${id}`);
 
 			return res.status(200).json({
-				message: "Notice updated successfully",
+				message: "Class updated successfully",
 			});
 		} catch (error) {
 			return res.status(500).json({
-				message: "Error updating notice",
+				message: "Error updating class",
 				error: error.message,
 			});
 		}
 	},
 
-	deleteNotice: async (req, res) => {
+	deleteClass: async (req, res) => {
 		try {
 			const id = req.params.id;
 
 			const results = await queryAsync(
-				"DELETE FROM notices WHERE id = ?",
+				"DELETE FROM classes WHERE id = ?",
 				[id]
 			);
 
 			if (results.affectedRows === 0) {
 				return res.status(404).json({
-					message: "Notice not found",
+					message: "Class not found",
 				});
 			}
 
-			cache.del("notices");
-			cache.del(`notice_${id}`);
+			cache.del("classes");
+			cache.del(`class_${id}`);
 
 			return res.status(200).json({
-				message: "Notice deleted successfully",
+				message: "Class deleted successfully",
 			});
 		} catch (error) {
 			return res.status(500).json({
-				message: "Error deleting notice",
+				message: "Error deleting class",
 				error: error.message,
 			});
 		}
