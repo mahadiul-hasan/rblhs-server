@@ -5,7 +5,7 @@ const util = require("util");
 const query = util.promisify(pool.query).bind(pool);
 
 module.exports = {
-	createResult: async (req, res) => {
+	createNewResult: async (req, res) => {
 		const {
 			name,
 			examName,
@@ -14,7 +14,6 @@ module.exports = {
 			year,
 			section,
 			newRole,
-			total,
 			subjectResult,
 		} = req.body;
 		try {
@@ -26,12 +25,11 @@ module.exports = {
 				year: year,
 				section: section,
 				newRole: newRole,
-				total: total,
 				subjectResult: JSON.stringify(subjectResult),
 			};
 
 			const results = await query(
-				"SELECT * FROM old_results WHERE role = ? AND className = ? AND year = ? AND section = ?",
+				"SELECT * FROM new_results WHERE role = ? AND className = ? AND year = ? AND section = ?",
 				[role, className, year, section]
 			);
 			if (results.length > 0) {
@@ -41,10 +39,10 @@ module.exports = {
 			}
 
 			const insertResult = await query(
-				"INSERT INTO old_results SET ?",
+				"INSERT INTO new_results SET ?",
 				resultData
 			);
-			cache.del("old_results");
+			cache.del("new_results");
 
 			return res.status(200).json({
 				message: "Result created successfully",
@@ -58,24 +56,24 @@ module.exports = {
 		}
 	},
 
-	getAllResults: async (req, res) => {
+	getAllNewResults: async (req, res) => {
 		try {
-			const cachedOldResults = cache.get("old_results");
+			const cachedOldResults = cache.get("new_results");
 			if (cachedOldResults) {
 				return res.status(200).json({
 					message: "Results retrieved from cache",
 					total: cachedOldResults.total,
-					old_results: cachedOldResults.parsedResults,
+					new_results: cachedOldResults.parsedResults,
 				});
 			}
 
 			const countResults = await query(
-				"SELECT COUNT(*) AS total FROM old_results"
+				"SELECT COUNT(*) AS total FROM new_results"
 			);
 			const total = countResults[0].total;
 
 			const results = await query(
-				"SELECT * FROM old_results ORDER BY id DESC"
+				"SELECT * FROM new_results ORDER BY id DESC"
 			);
 			const parsedResults = results.map((result) => {
 				return {
@@ -84,7 +82,7 @@ module.exports = {
 				};
 			});
 
-			cache.set("old_results", {
+			cache.set("new_results", {
 				total,
 				parsedResults,
 			});
@@ -92,7 +90,7 @@ module.exports = {
 			return res.status(200).json({
 				message: "Results retrieved successfully",
 				total: total,
-				old_results: parsedResults,
+				new_results: parsedResults,
 			});
 		} catch (error) {
 			return res.status(500).json({
@@ -102,12 +100,12 @@ module.exports = {
 		}
 	},
 
-	getResultByRoll: async (req, res) => {
+	getNewResultByRoll: async (req, res) => {
 		try {
 			const { examName, className, role, year, section } = req.body;
 
 			const results = await query(
-				"SELECT * FROM old_results WHERE examName = ? AND className = ? AND role = ? AND year = ? AND section = ?",
+				"SELECT * FROM new_results WHERE examName = ? AND className = ? AND role = ? AND year = ? AND section = ?",
 				[examName, className, role, year, section]
 			);
 
@@ -134,11 +132,11 @@ module.exports = {
 		}
 	},
 
-	getResultById: async (req, res) => {
+	getNewResultById: async (req, res) => {
 		try {
 			const id = req.params.id;
 			const results = await query(
-				"SELECT * FROM old_results WHERE id = ?",
+				"SELECT * FROM new_results WHERE id = ?",
 				[id]
 			);
 			if (results.length === 0) {
@@ -159,7 +157,7 @@ module.exports = {
 		}
 	},
 
-	updateResult: async (req, res) => {
+	updateNewResult: async (req, res) => {
 		try {
 			const id = req.params.id;
 			const {
@@ -167,15 +165,14 @@ module.exports = {
 				examName,
 				role,
 				year,
-				newRole,
-				total,
 				section,
+				newRole,
 				subjectResultToUpdate,
 			} = req.body;
 
 			if (subjectResultToUpdate) {
 				const existingResult = await query(
-					"SELECT * FROM old_results WHERE id = ?",
+					"SELECT * FROM new_results WHERE id = ?",
 					[id]
 				);
 				if (existingResult.length === 0) {
@@ -191,14 +188,11 @@ module.exports = {
 
 				for (const subject of subjectResultToUpdate) {
 					const existingSubject = existingSubjectResult.find(
-						(item) => item.subject === subject.subject
+						(item) => item.type === subject.type
 					);
 
 					if (existingSubject) {
-						existingSubject.creative = subject.creative;
-						existingSubject.impersonal = subject.impersonal;
-						existingSubject.practical = subject.practical;
-						existingSubject.total = subject.total;
+						existingSubject.value = subject.value;
 					} else {
 						existingSubjectResult.push(subject);
 					}
@@ -209,7 +203,7 @@ module.exports = {
 				);
 
 				const updateResult = await query(
-					"UPDATE old_results SET ? WHERE id = ?",
+					"UPDATE new_results SET ? WHERE id = ?",
 					[existingResultData, id]
 				);
 				if (updateResult.affectedRows === 0) {
@@ -218,7 +212,7 @@ module.exports = {
 					});
 				}
 
-				cache.del("old_results");
+				cache.del("new_results");
 
 				return res.status(200).json({
 					message: "Result updated successfully",
@@ -232,10 +226,9 @@ module.exports = {
 				if (year) updateFields.year = year;
 				if (section) updateFields.section = section;
 				if (newRole) updateFields.newRole = newRole;
-				if (total) updateFields.total = total;
 
 				const existingResult = await query(
-					"SELECT * FROM old_results WHERE id = ?",
+					"SELECT * FROM new_results WHERE id = ?",
 					[id]
 				);
 
@@ -247,7 +240,7 @@ module.exports = {
 
 				try {
 					const updateResult = await query(
-						"UPDATE old_results SET ? WHERE id = ?",
+						"UPDATE new_results SET ? WHERE id = ?",
 						[updateFields, id]
 					);
 
@@ -257,7 +250,7 @@ module.exports = {
 						});
 					}
 
-					cache.del("old_results");
+					cache.del("new_results");
 
 					return res.status(200).json({
 						message: "Result fields updated successfully",
@@ -277,12 +270,12 @@ module.exports = {
 		}
 	},
 
-	deleteResult: async (req, res) => {
+	deleteNewResult: async (req, res) => {
 		try {
 			const id = req.params.id;
 
 			const deleteResult = await query(
-				"DELETE FROM old_results WHERE id = ?",
+				"DELETE FROM new_results WHERE id = ?",
 				[id]
 			);
 			if (deleteResult.affectedRows === 0) {
@@ -291,7 +284,7 @@ module.exports = {
 				});
 			}
 
-			cache.del("old_results");
+			cache.del("new_results");
 
 			return res.status(200).json({
 				message: "Result deleted successfully",
