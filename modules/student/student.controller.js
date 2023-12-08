@@ -178,4 +178,44 @@ module.exports = {
 			});
 		}
 	},
+
+	deleteStudentsByClassAndYear: async (req, res) => {
+		const { className, year } = req.body;
+
+		try {
+			// Find student_ids based on className and year
+			const studentIdsResult = await queryAsync(
+				"SELECT student_id FROM students WHERE className = ? AND year = ?",
+				[className, year]
+			);
+			const studentIds = studentIdsResult.map((row) => row.student_id);
+
+			if (studentIds.length === 0) {
+				return res.status(404).json({
+					message:
+						"No students found for the given class name and year.",
+				});
+			}
+
+			// Delete students based on found student_ids
+			await queryAsync(
+				"DELETE FROM students WHERE className = ? AND year = ?",
+				[className, year]
+			);
+
+			// Invalidate the cache for this class
+			cache.del(`students_${className}`);
+			cache.del("students");
+
+			return res.status(200).json({
+				message: "Students deleted successfully",
+				deletedStudentIds: studentIds,
+			});
+		} catch (error) {
+			return res.status(500).json({
+				message: "Error deleting students",
+				error: error.message,
+			});
+		}
+	},
 };

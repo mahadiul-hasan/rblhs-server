@@ -6,6 +6,7 @@ const {
 	updateStudent,
 	deleteStudent,
 	getStudentByClass,
+	deleteStudentsByClassAndYear,
 } = require("./student.controller");
 
 const router = require("express").Router();
@@ -18,6 +19,12 @@ router.post(
 	"/",
 	auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.TEACHER),
 	createStudent
+);
+
+router.post(
+	"/all",
+	auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.TEACHER),
+	deleteStudentsByClassAndYear
 );
 
 router.patch(
