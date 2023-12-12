@@ -28,8 +28,6 @@ module.exports = {
 				const paymentData = payment[0];
 				const studentData = student[0];
 
-				cache.del("payments");
-
 				const formattedData = {
 					name: studentData.name,
 					class: studentData.className,
@@ -60,28 +58,35 @@ module.exports = {
 
 	getAllPayments: async (req, res) => {
 		try {
-			const cachedPayments = cache.get("payments");
-			if (cachedPayments) {
-				return res.status(200).json({
-					message: "Payments retrieved from cache",
-					total: cachedPayments.total,
-					payments: cachedPayments.results,
-				});
-			}
-
 			const countResults = await queryAsync(
 				"SELECT COUNT(*) AS total FROM payments"
 			);
 			const total = countResults[0].total;
 
 			const results = await queryAsync(
-				"SELECT p.*, s.* FROM payments p JOIN students s ON p.studentId = s.id ORDER BY p.id DESC"
+				`
+				SELECT 
+					p.id AS id, 
+					s.id AS studentId, 
+					p.id AS id, 
+					p.studentId AS studentId,
+					p.amount,
+					p.title,
+					p.date,
+					s.name,
+					s.role,
+					s.className,
+					s.year,
+					s.section,
+					s.religion
+				FROM 
+					payments p 
+				JOIN 
+					students s ON p.studentId = s.id 
+				ORDER BY 
+					p.id DESC
+				`
 			);
-
-			cache.set("payments", {
-				total,
-				results,
-			});
 
 			return res.status(200).json({
 				message: "Payments retrieved successfully",
