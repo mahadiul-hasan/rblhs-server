@@ -34,9 +34,10 @@ module.exports = {
 					role: studentData.role,
 					section: studentData.section,
 					year: studentData.year,
+					id: payment.id,
 					title: paymentData.title,
 					amount: paymentData.amount,
-					date: paymentData.date.toISOString().split("T")[0],
+					date: paymentData.date,
 				};
 
 				res.status(200).json({
