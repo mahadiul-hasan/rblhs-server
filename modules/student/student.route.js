@@ -8,11 +8,14 @@ const {
 	getStudentByClass,
 	deleteStudentsByClassAndYear,
 	getOneStudent,
+	getStudentById,
 } = require("./student.controller");
 
 const router = require("express").Router();
 
 router.get("/", getAllStudents);
+
+router.get("/:id", getStudentById);
 
 router.get("/:className", getStudentByClass);
 

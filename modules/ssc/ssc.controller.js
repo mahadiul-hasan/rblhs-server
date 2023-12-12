@@ -93,7 +93,9 @@ module.exports = {
 				});
 			}
 
-			const results = await queryAsync("SELECT * FROM ssc ORDER BY year");
+			const results = await queryAsync(
+				"SELECT * FROM ssc ORDER BY year DESC"
+			);
 
 			cache.set("ssc", {
 				results,

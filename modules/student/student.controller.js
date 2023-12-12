@@ -14,6 +14,7 @@ module.exports = {
 
 			cache.del(`students_${req.body.className}`);
 			cache.del("students");
+			cache.del(`student_${result.insertId}`);
 
 			return res.status(200).json({
 				message: "Student created successfully",
@@ -26,6 +27,7 @@ module.exports = {
 			});
 		}
 	},
+
 	getAllStudents: async (req, res) => {
 		const cachedData = cache.get("students");
 
@@ -62,6 +64,45 @@ module.exports = {
 		} catch (error) {
 			return res.status(500).json({
 				message: "Error fetching students",
+				error: error.message,
+			});
+		}
+	},
+
+	getStudentById: async (req, res) => {
+		try {
+			const id = req.params.id;
+
+			const cachedStudent = cache.get(`student_${id}`);
+			if (cachedStudent) {
+				return res.status(200).json({
+					message: "Student retrieved from cache",
+					student: cachedStudent.results,
+				});
+			}
+
+			const student = await queryAsync(
+				"SELECT * FROM students WHERE id = ?",
+				[id]
+			);
+
+			if (student.length === 0) {
+				return res.status(404).json({
+					message: "Student not found",
+				});
+			}
+
+			const results = student[0];
+
+			cache.set(`student_${results.id}`, { results });
+
+			return res.status(200).json({
+				message: "Student retrieved successfully",
+				student: results,
+			});
+		} catch (error) {
+			return res.status(500).json({
+				message: "Error getting notice",
 				error: error.message,
 			});
 		}
@@ -167,6 +208,7 @@ module.exports = {
 
 			// Invalidate the cache for this student
 			cache.del(`students_${updatedStudentData.className}`);
+			cache.del(`student_${updatedStudentData.id}`);
 			cache.del("students");
 
 			return res.status(200).json({
@@ -179,6 +221,7 @@ module.exports = {
 			});
 		}
 	},
+
 	deleteStudent: async (req, res) => {
 		const id = req.params.id;
 
@@ -193,6 +236,7 @@ module.exports = {
 
 			// Invalidate the cache for this class
 			cache.del(`students_${className}`);
+			cache.del(`student_${id}`);
 			cache.del("students");
 
 			return res.status(200).json({
@@ -232,6 +276,7 @@ module.exports = {
 
 			// Invalidate the cache for this class
 			cache.del(`students_${className}`);
+			cache.del(`student_${studentIds}`);
 			cache.del("students");
 
 			return res.status(200).json({
