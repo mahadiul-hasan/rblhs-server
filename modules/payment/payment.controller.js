@@ -21,7 +21,7 @@ module.exports = {
 				);
 
 				const student = await queryAsync(
-					"SELECT * FROM students WHERE student_id = ?",
+					"SELECT * FROM students WHERE id = ?",
 					[req.body.studentId]
 				);
 
@@ -75,7 +75,7 @@ module.exports = {
 			const total = countResults[0].total;
 
 			const results = await queryAsync(
-				"SELECT * FROM payments ORDER BY id DESC"
+				"SELECT p.*, s.* FROM payments p JOIN students s ON p.studentId = s.id ORDER BY p.id DESC"
 			);
 
 			cache.set("payments", {

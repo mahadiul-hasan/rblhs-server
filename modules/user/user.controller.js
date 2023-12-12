@@ -47,7 +47,6 @@ module.exports = {
 					);
 
 					cache.del("allUsers");
-					cache.del("user");
 
 					return res.status(200).json({
 						message: "User created successfully",
@@ -141,14 +140,6 @@ module.exports = {
 	},
 
 	getUserById: async (req, res) => {
-		const cachedUser = cache.get("user");
-		if (cachedUser) {
-			return res.status(200).json({
-				message: "User retrieved from cache",
-				users: cachedUser.userData,
-			});
-		}
-
 		try {
 			const id = req.params.id;
 			const results = await queryAsync(
@@ -163,10 +154,6 @@ module.exports = {
 			}
 
 			const userData = results[0];
-
-			cache.set("user", {
-				userData,
-			});
 
 			return res.status(200).json({
 				message: "User retrieved successfully",
@@ -211,7 +198,6 @@ module.exports = {
 			}
 
 			cache.del("allUsers");
-			cache.del("user");
 
 			return res.status(200).json({
 				message: "User updated successfully",
@@ -255,7 +241,6 @@ module.exports = {
 					}
 
 					cache.del("allUsers");
-					cache.del("user");
 
 					return res.status(200).json({
 						message: "User deleted successfully",
@@ -328,7 +313,6 @@ module.exports = {
 					});
 
 					cache.del("allUsers");
-					cache.del("user");
 
 					return res.status(200).json({
 						message: "User Profile Image updated successfully",
