@@ -67,6 +67,33 @@ module.exports = {
 		}
 	},
 
+	getOneStudent: async (req, res) => {
+		try {
+			const { className, role, year, section } = req.body;
+
+			const results = await queryAsync(
+				"SELECT * FROM students WHERE className = ? AND role = ? AND year = ? AND section = ?",
+				[className, role, year, section]
+			);
+
+			if (!results || results.length === 0 || !results[0]) {
+				return res.status(404).json({
+					message: "Student not found",
+				});
+			}
+
+			return res.status(200).json({
+				message: "Student retrieved successfully",
+				student: results,
+			});
+		} catch (error) {
+			return res.status(500).json({
+				message: "Error getting result",
+				error: error.message,
+			});
+		}
+	},
+
 	getStudentByClass: async (req, res) => {
 		const className = req.params.className;
 
@@ -133,7 +160,7 @@ module.exports = {
 		const updatedStudentData = req.body;
 
 		try {
-			await queryAsync("UPDATE students SET ? WHERE student_id = ?", [
+			await queryAsync("UPDATE students SET ? WHERE id = ?", [
 				updatedStudentData,
 				id,
 			]);
@@ -157,12 +184,12 @@ module.exports = {
 
 		try {
 			const classNameResult = await queryAsync(
-				"SELECT className FROM students WHERE student_id = ?",
+				"SELECT className FROM students WHERE id = ?",
 				[id]
 			);
 			const className = classNameResult[0].className;
 
-			await queryAsync("DELETE FROM students WHERE student_id = ?", [id]);
+			await queryAsync("DELETE FROM students WHERE id = ?", [id]);
 
 			// Invalidate the cache for this class
 			cache.del(`students_${className}`);
@@ -183,12 +210,12 @@ module.exports = {
 		const { className, year } = req.body;
 
 		try {
-			// Find student_ids based on className and year
+			// Find ids based on className and year
 			const studentIdsResult = await queryAsync(
-				"SELECT student_id FROM students WHERE className = ? AND year = ?",
+				"SELECT id FROM students WHERE className = ? AND year = ?",
 				[className, year]
 			);
-			const studentIds = studentIdsResult.map((row) => row.student_id);
+			const studentIds = studentIdsResult.map((row) => row.id);
 
 			if (studentIds.length === 0) {
 				return res.status(404).json({
@@ -197,7 +224,7 @@ module.exports = {
 				});
 			}
 
-			// Delete students based on found student_ids
+			// Delete students based on found ids
 			await queryAsync(
 				"DELETE FROM students WHERE className = ? AND year = ?",
 				[className, year]

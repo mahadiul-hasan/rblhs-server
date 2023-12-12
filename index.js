@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+const path = require("path");
 const fileUpload = require("express-fileupload");
 const cors = require("cors");
 const UserRouter = require("./modules/user/user.route");
@@ -20,6 +21,8 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use(fileUpload());
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/users", UserRouter);
 app.use("/api/auth", AuthRouter);

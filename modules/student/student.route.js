@@ -7,18 +7,25 @@ const {
 	deleteStudent,
 	getStudentByClass,
 	deleteStudentsByClassAndYear,
+	getOneStudent,
 } = require("./student.controller");
 
 const router = require("express").Router();
 
 router.get("/", getAllStudents);
 
-router.get("/:class_name", getStudentByClass);
+router.get("/:className", getStudentByClass);
 
 router.post(
 	"/",
 	auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.TEACHER),
 	createStudent
+);
+
+router.post(
+	"/one",
+	auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.TEACHER),
+	getOneStudent
 );
 
 router.post(

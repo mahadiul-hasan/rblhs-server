@@ -47,7 +47,6 @@ module.exports = {
 					);
 
 					cache.del("allUsers");
-					cache.del("userProfile");
 					cache.del("user");
 
 					return res.status(200).json({
@@ -114,14 +113,6 @@ module.exports = {
 	},
 
 	userProfile: async (req, res) => {
-		const cachedUserProfile = cache.get("userProfile");
-		if (cachedUserProfile) {
-			return res.status(200).json({
-				message: "User profile retrieved from cache",
-				user: cachedUserProfile.profile,
-			});
-		}
-
 		try {
 			const { id } = req.user;
 			const results = await queryAsync(
@@ -136,10 +127,6 @@ module.exports = {
 			}
 
 			const profile = results[0];
-
-			cache.set("userProfile", {
-				profile,
-			});
 
 			return res.status(200).json({
 				message: "User retrieved successfully",
@@ -224,7 +211,6 @@ module.exports = {
 			}
 
 			cache.del("allUsers");
-			cache.del("userProfile");
 			cache.del("user");
 
 			return res.status(200).json({
@@ -269,7 +255,6 @@ module.exports = {
 					}
 
 					cache.del("allUsers");
-					cache.del("userProfile");
 					cache.del("user");
 
 					return res.status(200).json({
@@ -343,7 +328,6 @@ module.exports = {
 					});
 
 					cache.del("allUsers");
-					cache.del("userProfile");
 					cache.del("user");
 
 					return res.status(200).json({
