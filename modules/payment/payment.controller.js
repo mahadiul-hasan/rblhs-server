@@ -34,7 +34,7 @@ module.exports = {
 					role: studentData.role,
 					section: studentData.section,
 					year: studentData.year,
-					id: payment.id,
+					id: paymentData.id,
 					title: paymentData.title,
 					amount: paymentData.amount,
 					date: paymentData.date,

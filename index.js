@@ -37,6 +37,4 @@ app.use("/api/classes", ClassRouter);
 app.use("/api/ssc", SSCRouter);
 app.use("/api/payments", PaymentRouter);
 
-app.listen(process.env.PORT, () => {
-	console.log(`Server is running on port ${process.env.PORT}`);
-});
+app.listen();
