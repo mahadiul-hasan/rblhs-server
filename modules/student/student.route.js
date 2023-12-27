@@ -17,11 +17,7 @@ router.get("/", getAllStudents);
 
 router.get("/:id", getStudentById);
 
-router.get(
-	"/one/:className",
-	auth(ENUM_USER_ROLE.ADMIN, ENUM_USER_ROLE.TEACHER),
-	getStudentByClass
-);
+router.get("/one/:className", getStudentByClass);
 
 router.post(
 	"/",
